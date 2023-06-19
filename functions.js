@@ -19,102 +19,94 @@ import { data } from "./functions.js";
 const FRAGMENT = document.createDocumentFragment();
 
 /* -----------------------------------------------DISPLAY---------------------------------------- */
-/**
- * Factory function to create a book preview.
- * @param {object} book - The book object.
- * @returns {object} The book preview object.
- */
-const createBookPreview = (book) => {
-  /**
-   * Renders the book preview HTML.
-   * @returns {string} The rendered HTML.
-   */
-  const render = () => {
-    return `
-        <div class="preview">
-          <img class="preview__image" src="${book.image}" />
-          <div class="preview__info">
-            <h3 class="preview__title">${book.title}</h3>
-            <div class="preview__author">${authors[book.author]}</div>
-          </div>
-        </div>
-      `;
-  };
+/** 
+* Using class syntax
+*/ 
+// BookPreview component
+class BookPreview extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+  }
 
-  /**
-   * Handles the click event on the book preview.
-   * @param {Event} event - The click event object.
-   */
-  const handleClick = (event) => {
+  connectedCallback() {
+    this.render();
+    this.addEventListener("click", this.handleClick);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener("click", this.handleClick);
+  }
+
+  static get observedAttributes() {
+    return ["image", "title", "author"];
+  }
+
+  attributeChangedCallback(attrName, oldValue, newValue) {
+    this.render();
+  }
+
+  handleClick(event) {
     // Code for handling the click event on the book preview
-  };
-
-  return {
-    render,
-    handleClick,
-  };
-};
-
-/**
- * This function updates the number of books left and then prints
- * that number on the button used to show more books.
- * @returns {number} The number of books left that haven't been loaded to the page.
- */
-const updateBooksLeft = () => {
-  const booksOnPageCount = data.home.bookCards.length;
-  const booksLeft = books.length - booksOnPageCount;
-  return booksLeft;
-};
-
-/**
- * This function loads the home page of the website with the books shown in a list of 36 at a time.
- * @param {object} books - The list of books to append to the page.
- */
-const appendBooks = (books) => {
-  for (let i = 0; i < BOOKS_PER_PAGE; i++) {
-    const book = books[i];
-    createBookPreview(book).render();
   }
 
-  data.home.main.appendChild(FRAGMENT);
+  render() {
+    const image = this.getAttribute("image");
+    const title = this.getAttribute("title");
+    const author = this.getAttribute("author");
 
-  data.home.SHOW_MORE_BTN.innerHTML = `Show more <span class="list__remaining">(${
-    updateBooksLeft() - BOOKS_PER_PAGE
-  })</span>`;
-};
+    this.shadowRoot.innerHTML = `
+      <style>
+        /* Define your styles here */
+      </style>
+      <div class="preview">
+        <img class="preview__image" src="${image}" />
+        <div class="preview__info">
+          <h3 class="preview__title">${title}</h3>
+          <div class="preview__author">${author}</div>
+        </div>
+      </div>
+    `;
+  }
+}
 
-/**
- * This function adds more books to the page and updates the number in the show more button
- * every time it is clicked until there are no more books left in the books object.
- * @param {Event} event - The click event object.
- */
-const showMoreAction = (event) => {
-  event.preventDefault();
-  const booksOnPageCount = document.querySelectorAll(".preview").length;
-  const booksLeft = books.length - booksOnPageCount;
+customElements.define("book-preview", BookPreview);
 
-  if (booksLeft > 36) {
-    appendBooks(books.slice(booksOnPageCount, booksOnPageCount + 36));
-    data.home.SHOW_MORE_BTN.innerHTML = `Show more <span class="list__remaining">(${
-      booksLeft - BOOKS_PER_PAGE
-    })</span>`;
-  } else {
-    for (let i = 0; i < booksLeft; i++) {
-      const book = books[i];
-      createBookPreview(book).render();
-    }
-
-    data.home.main.appendChild(FRAGMENT);
-    data.home.SHOW_MORE_BTN.innerHTML =
-      'Show more <span class="list__remaining">(0)</span>';
-    data.home.SHOW_MORE_BTN.disabled = true;
+// ShowMoreButton component
+class ShowMoreButton extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.handleClick = this.handleClick.bind(this);
   }
 
-  const bookList = document.querySelectorAll(".preview");
-  for (let z = booksOnPageCount; z < books.length; z++) {
-    bookList[z].addEventListener("click", descriptionOverlay);
+  connectedCallback() {
+    this.render();
+    this.addEventListener("click", this.handleClick);
   }
-};
+
+  disconnectedCallback() {
+    this.removeEventListener("click", this.handleClick);
+  }
+
+  handleClick(event) {
+    event.preventDefault();
+    // Code for handling the "show more" action
+  }
+
+  render() {
+    const booksLeft = this.getAttribute("books-left");
+
+    this.shadowRoot.innerHTML = `
+      <style>
+        /* Define your styles here */
+      </style>
+      <button>${booksLeft > 36 ? "Show more" : "Show more (0)"}</button>
+    `;
+  }
+}
+
+customElements.define("show-more-button", ShowMoreButton);
 
 // Usage:
 const book = {
@@ -124,9 +116,16 @@ const book = {
   image: "book-image.jpg",
 };
 
-const preview = createBookPreview(book);
-const previewHtml = preview.render();
-document.body.innerHTML = previewHtml;
+const preview = document.createElement("book-preview");
+preview.setAttribute("image", book.image);
+preview.setAttribute("title", book.title);
+preview.setAttribute("author", book.author);
+document.body.appendChild(preview);
+
+const showMoreBtn = document.createElement("show-more-button");
+showMoreBtn.setAttribute("books-left", "100"); // Replace with appropriate value
+document.body.appendChild(showMoreBtn);
+
 
 /* ----------------------------------------BOOK SUMMARY OVERLAY---------------------------------- */
 
